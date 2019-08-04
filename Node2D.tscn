@@ -23,6 +23,7 @@ margin_bottom = 58.0
 size_flags_horizontal = 3
 size_flags_vertical = 0
 script = ExtResource( 1 )
+debug = false
 
 [node name="Label" type="Label" parent="Control/VBoxContainer3/VBoxContainer"]
 margin_right = 1024.0
@@ -88,6 +89,6 @@ margin_right = 1024.0
 margin_bottom = 58.0
 size_flags_vertical = 2
 custom_fonts/font = SubResource( 1 )
-text = ")متن 1: این متن »نمونه‌ای« است برای بررسی \"صحت حروف‌چینی\" _*+گودوت‌انجین+*_ ( سلام. hello."
+text = "سلام. hello to you بهترین الله nice جیگر"
 align = 2
 

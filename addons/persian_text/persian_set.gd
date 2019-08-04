@@ -1,7 +1,7 @@
 extends Node
 
 
-export(bool) var debug = false
+var debug = false
 
 enum dir { rtl, ltr }
 enum {FA, EN, UN}
@@ -86,6 +86,49 @@ class Letter:
 class Part:
 	var type = -1
 	var tokens := []
+	
+	func add(value: Letter):
+		tokens.append(value)
+	
+	func get_fa_word(fa_list, fa_s_list) -> String:
+		
+		var word := ""
+		var size := tokens.size()
+	
+		for i in size:
+		
+			var token = tokens[i]
+		
+			match type:
+				FA:
+					if token.is_shift:
+						word = fa_s_list[abs(token.position + 2)] + word
+					else:
+						word = fa_list[(token.position * 4) + token.no] + word
+#				EN:
+#					word += token.c
+				UN:
+					word = token.c + word
+		
+		return word
+	
+	func get_en_word() -> String:
+		
+		var word := ""
+		var size := tokens.size()
+	
+		for i in size:
+		
+			var token = tokens[i]
+		
+			match type:
+				EN:
+					word += token.c
+				UN:
+					word = token.c + word
+		
+		return word
+
 
 class TextPart:
 	var parts = []
@@ -264,14 +307,14 @@ func splite_text_by_type(tokens: Array) -> Array:
 			debug("------")
 			debug("t" + str(token.type) + "	p" + str(i))
 			part.type = token.type
-			part.tokens.append(token)
+			part.add(token)
 			
 			
 			if i + 1 == token_size:
 				debug("last")
 				text_tree.append(part)
 		else:
-			part.tokens.append(token)
+			part.add(token)
 			if i + 1 == token_size:
 				debug("last")
 				text_tree.append(part)
@@ -292,44 +335,113 @@ func splite_text_by_type(tokens: Array) -> Array:
 	
 	return text_tree
 
-
-class ld:
+class newPart:
 	var type = -1
-	var end := false
-	var text := ""
+	var parts := []
 	
-	func init():
-		type = -1
-		end = false
-		text = ""
+	func append(part: Part):
+		parts.append(part)
 	
-	func set_date():
-		type = _type
-		end = _end
-		text = _text
-
-
-func collect_part(part : Part) -> String:
+	func init(part: Part):
+		type = part.type
+		print(type)
+		append(part)
 	
-	var string := ""
-	var size := part.tokens.size()
-	
-	for i in size:
+	func get_part(fa_word: Array, fa_s_word: Array) -> String:
+		var string := ""
 		
-		var token = part.tokens[i]
-		
-		match part.type:
+		match type:
 			FA:
-				if token.is_shift:
-					string = fa_s_word[abs(token.position + 2)] + string
-				else:
-					string = fa_word[(token.position * 4) + token.no] + string
+				for part in parts:
+					string = part.get_fa_word(fa_word, fa_s_word) + string
 			EN:
-				string += token.c
-			UN:
-				string = token.c + string
+				for part in parts:
+					string += part.get_en_word() 
+
+		
+		return string
 	
-	return string
+
+func collect_en_part(text_tree: Array) -> Array:
+	var text_tr := []
+	var new_part := newPart.new()
+	var end = false
+	var new = false
+	var adi = true
+	var next = false
+	
+	
+	for i in text_tree.size():
+		
+		
+		if new_part.type == -1:
+			new_part.init(text_tree[i])
+			if i + 1 < text_tree.size():
+				i += 1
+		
+		while not end:
+			
+			match new_part.type:
+				FA:
+					if text_tree[i].type == FA:
+						new_part.append(text_tree[i])
+					
+					elif text_tree[i].type == EN:
+						next = true
+					
+					elif text_tree[i].type == UN:
+						new_part.append(text_tree[i])
+				
+				EN:
+					if text_tree[i].type == FA:
+						next = true
+					
+					elif text_tree[i].type == EN:
+						new_part.append(text_tree[i])
+					
+					elif text_tree[i].type == UN:
+						if text_tree[i +1].type == EN:
+							new_part.append(text_tree[i])
+						else:
+							next = true
+				
+				UN:
+					if text_tree[i].type == FA:
+						new_part.append(text_tree[i])
+						new_part.type = FA
+					
+					elif text_tree[i].type == EN:
+						next = true
+					
+			
+			
+			if next:
+				next = false
+				text_tr.append(new_part)
+				new = true
+				adi = false
+
+			if adi:
+				if i + 1 < text_tree.size():
+					i += 1
+				else:
+					text_tr.append(new_part)
+					end = true
+			else:
+				adi = true
+			
+			
+			if new:
+				new = false
+				new_part = newPart.new()
+				new_part.init(text_tree[i])
+				
+				if i + 1 < text_tree.size():
+					i += 1
+				
+	
+	
+	return text_tr
 
 func make_text(text_tree: Array) -> String:
 	
@@ -337,52 +449,15 @@ func make_text(text_tree: Array) -> String:
 	
 	var text = ""
 	var string = ""
-	var en_part :ld= ld.new()
-	
-	var part_size = text_tree.size()
 	
 	
 	
-	for i in part_size:
-		
-		var part = text_tree[i]
-		
-		string = collect_part(part)
-		
-#		ld.type = part.type
-#
-#		if !ld.end:
-#			ld.add_text(string)
-#		else:
-#			text = ld.text + text
-#			ld.init()
-#			ld.type = part.type
+	text_tree = collect_en_part(text_tree)
+	
+	for part in text_tree:
 		
 		
-		
-		
-#		match part.type:
-#			FA, FAS:
-#				text += string
-#			UN, EN, ENS:
-#				text = string + text
-		
-		
-		
-		
-#		if i + 1 <= part_size:
-#			match text_tree[i+1].type:
-#				UN:
-#					if i + 2 <= part_size:
-#						match text_tree[i+2].type:
-#							EN:
-#								en_part += string
-#							FA:
-#								pass
-#				EN:
-#					en_part += string
-#				FA:
-#					pass
+		string = part.get_part(fa_word, fa_s_word)
 		
 		text = string + text
 		
