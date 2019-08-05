@@ -105,7 +105,7 @@ func persiaSet(array):
 	pass
 
 func _ready():
-	var SampleText = ")متن 1: این متن »نمونه‌ای« است برای بررسی \"صحت حروف‌چینی\" _*+گودوت‌انجین+*_ ( سلام. hello."
+	var SampleText = "&rlm;)متن 1: این متن »نمونه‌ای« است برای بررسی \"صحت حروف‌چینی\" _*+گودوت‌انجین+*_ ( سلام. hello."
 	get_node("Label").set_text(persiaSet(SampleText))
 	get_node("Label2").set_text(SampleText)
 	pass

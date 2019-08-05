@@ -83,6 +83,7 @@ class Letter:
 	var position := -1
 	var is_shift = false
 
+
 class Part:
 	var type = -1
 	var tokens := []
@@ -130,13 +131,215 @@ class Part:
 		return word
 
 
-class TextPart:
-	var parts = []
+class PartHolder:
+	var type = -1
+	var parts := []
+	
+	func append(part: Part):
+		parts.append(part)
+	
+	func init(part: Part):
+		type = part.type
+		print(type)
+		append(part)
+	
+	func get_part(fa_word: Array, fa_s_word: Array) -> String:
+		var string := ""
+		
+		match type:
+			FA:
+				for part in parts:
+					string = part.get_fa_word(fa_word, fa_s_word) + string
+			EN:
+				for part in parts:
+					string += part.get_en_word() 
+
+		
+		return string
+
+
+class TextTree:
+	var branchs := []
+	
+	func init(util, letters):
+		
+		split_to_parts(letters)
+		set_persian_char_type(util)
+		collect_en_part()
+		pass
+	
+	func append(value):
+		branchs.append(value)
+	
+	func split_to_parts(letters: Array):
+		"""
+		splite text by type language for accessablity
+		"""
+		
+		var part := Part.new()
+		var letter_size := letters.size()
+		
+		for i in letter_size:
+			
+			var letter = letters[i]
+			
+			
+			if letter.type != part.type:
+				append(part)
+				
+				part = Part.new()
+				part.type = letter.type
+				part.add(letter)
+				
+				if i + 1 == letter_size:
+					append(part)
+				
+			else:
+				part.add(letter)
+				if i + 1 == letter_size:
+					append(part)
+		
+		
+		branchs.pop_front()
+	
+	func set_persian_char_type(util):
+		"""
+		set type of characters for persian
+		"""
+		for part in branchs:
+			if part.type != FA:
+				continue
+			
+			var tokens = part.tokens
+			var token_size = tokens.size()
+			
+			
+			for i in token_size:
+				var token = tokens[i]
+				
+				
+				# if i was first char
+				if i == 0:
+					# and was last char
+					if i == token_size - 1:
+						token.no = 0
+					else:
+						token.no = 2
+				
+				# if was a shift char
+				elif util.check_s(tokens[ i - 1 ]) :
+					# if not was last char
+					if (i != token_size - 1):
+						#	if (shift_char_position( tokens[ i + 1 ].c ) < -1):
+						if util.check_s(tokens[ i + 1 ]):
+							token.no = 0 
+						else:
+							token.no = 2
+					else:
+						token.no = 0
+				
+				# if was between or somthing
+				else:
+					# if not was last char
+					if (i != token_size - 1):
+						#
+						if util.check_s(tokens[ i + 1 ], true):
+							token.no = 1
+						else:
+							token.no = 3
+					else:
+						token.no = 1
+					
+				tokens[i] = token
+			
+			
+			part.tokens = tokens
+	
+	func collect_en_part():
+		var text_tr := []
+		var new_part := PartHolder.new()
+		var end = false
+		var new = false
+		var adi = true
+		var next = false
+		
+		
+		for i in branchs.size():
+			
+			
+			if new_part.type == -1:
+				new_part.init(branchs[i])
+				if i + 1 < branchs.size():
+					i += 1
+			
+			while not end:
+				
+				match new_part.type:
+					FA:
+						if branchs[i].type == FA:
+							new_part.append(branchs[i])
+						
+						elif branchs[i].type == EN:
+							next = true
+						
+						elif branchs[i].type == UN:
+							new_part.append(branchs[i])
+					
+					EN:
+						if branchs[i].type == FA:
+							next = true
+						
+						elif branchs[i].type == EN:
+							new_part.append(branchs[i])
+						
+						elif branchs[i].type == UN:
+							if branchs[i +1].type == EN:
+								new_part.append(branchs[i])
+							else:
+								next = true
+					
+					UN:
+						if branchs[i].type == FA:
+							new_part.append(branchs[i])
+							new_part.type = FA
+						
+						elif branchs[i].type == EN:
+							next = true
+						
+				
+				
+				if next:
+					next = false
+					text_tr.append(new_part)
+					new = true
+					adi = false
+	
+				if adi:
+					if i + 1 < branchs.size():
+						i += 1
+					else:
+						text_tr.append(new_part)
+						end = true
+				else:
+					adi = true
+				
+				
+				if new:
+					new = false
+					new_part = PartHolder.new()
+					new_part.init(branchs[i])
+					
+					if i + 1 < branchs.size():
+						i += 1
+		
+		branchs = text_tr
+
+
 
 
 
 # get position in special Chars
-func shift_char_position( letter: Letter) -> Letter:
+func s_char_position( letter: Letter) -> Letter:
 	
 	match letter.type:
 		FA:
@@ -196,287 +399,27 @@ func check_s(letter: Letter, limit = false) -> bool:
 				return true
 	return false
 
-func set_persian_char_type(text_part: Array) -> Array:
-	"""
-	set type of characters for persian
-	"""
-	
-	debug("----set persian char type")
-	debug(text_part.size())
-	for part in text_part:
-		if part.type != FA:
-			continue
-		
-		var tokens = part.tokens
-		var token_size = tokens.size()
-		
-		
-		for i in token_size:
-			var token = tokens[i]
-			
-			
-			debug('----')
-			
-			if i != 0:
-				debug("\\ " + tokens[i-1].c + " " + str(tokens[ i - 1 ].type))
-			debug("> " + token.c + " " + str(token.type))
-			if i != token_size -1:
-				debug("/ " + tokens[i+1].c + " " + str(tokens[ i + 1 ].type))
-			
-			
-			# if i was first char
-			if i == 0:
-				debug("first char")
-				# and was last char
-				if i == token_size - 1:
-					debug("before last char")
-					token.no = 0
-				else:
-					debug("not before last char")
-					token.no = 2
-			
-			# if was a shift char
-			elif check_s(tokens[ i - 1 ]) :
-				debug("befor is shift char")
-				# if not was last char
-				if (i != token_size - 1):
-					debug("not before last char")
-	#				if (shift_char_position( tokens[ i + 1 ].c ) < -1):
-					if check_s(tokens[ i + 1 ]):
-						debug("after this are shift char")
-						token.no = 0 
-					else:
-						debug("not after this shift char")
-						token.no = 2
-				else:
-					debug("before last char")
-					token.no = 0
-			
-			# if was between or somthing
-			else:
-				debug("between or something else")
-				# if not was last char
-				if (i != token_size - 1):
-					debug("not before last char")
-					#
-					if check_s(tokens[ i + 1 ], true):
-						debug("after this are shift char")
-						token.no = 1
-					else:
-						debug("after this not shift char")
-						token.no = 3
-				else:
-					debug("before last char")
-					token.no = 1
-				
-				if i == token_size:
-					debug("last char")
-			
-			debug("no: " + str(token.no))
-			tokens[i] = token
-		
-		for token in tokens:
-			debug(str(token.no) + "	" + token.c)
-		
-		part.tokens = tokens
-	
-	return text_part
 
-func splite_text_by_type(tokens: Array) -> Array:
-	
-	"""
-	splite text by type language for accessablity
-	"""
-	debug("----splite text by type")
-	
-	
-	var part := Part.new()
-	var token_size := tokens.size()
-	var text_tree := []
-	
-	for i in token_size:
-		
-		var token = tokens[i]
-		
-		
-		if token.type != part.type:
-			text_tree.append(part)
-			debug("add part: " + str(text_tree.size()))
-			part = Part.new()
-			
-			debug("------")
-			debug("t" + str(token.type) + "	p" + str(i))
-			part.type = token.type
-			part.add(token)
-			
-			
-			if i + 1 == token_size:
-				debug("last")
-				text_tree.append(part)
-		else:
-			part.add(token)
-			if i + 1 == token_size:
-				debug("last")
-				text_tree.append(part)
-		
-		debug(token.c)
-	
-	text_tree.pop_front()
-	
-	
-	debug("----type and char")
-	debug(text_tree.size())
-	for part in text_tree:
-		debug("/--/--/--/--/")
-		debug("type	" + str(part.type))
-		debug("------")
-		for tok in part.tokens:
-			debug("char	" + tok.c)
-	
-	return text_tree
 
-class newPart:
-	var type = -1
-	var parts := []
-	
-	func append(part: Part):
-		parts.append(part)
-	
-	func init(part: Part):
-		type = part.type
-		print(type)
-		append(part)
-	
-	func get_part(fa_word: Array, fa_s_word: Array) -> String:
-		var string := ""
-		
-		match type:
-			FA:
-				for part in parts:
-					string = part.get_fa_word(fa_word, fa_s_word) + string
-			EN:
-				for part in parts:
-					string += part.get_en_word() 
 
-		
-		return string
-	
 
-func collect_en_part(text_tree: Array) -> Array:
-	var text_tr := []
-	var new_part := newPart.new()
-	var end = false
-	var new = false
-	var adi = true
-	var next = false
-	
-	
-	for i in text_tree.size():
-		
-		
-		if new_part.type == -1:
-			new_part.init(text_tree[i])
-			if i + 1 < text_tree.size():
-				i += 1
-		
-		while not end:
-			
-			match new_part.type:
-				FA:
-					if text_tree[i].type == FA:
-						new_part.append(text_tree[i])
-					
-					elif text_tree[i].type == EN:
-						next = true
-					
-					elif text_tree[i].type == UN:
-						new_part.append(text_tree[i])
-				
-				EN:
-					if text_tree[i].type == FA:
-						next = true
-					
-					elif text_tree[i].type == EN:
-						new_part.append(text_tree[i])
-					
-					elif text_tree[i].type == UN:
-						if text_tree[i +1].type == EN:
-							new_part.append(text_tree[i])
-						else:
-							next = true
-				
-				UN:
-					if text_tree[i].type == FA:
-						new_part.append(text_tree[i])
-						new_part.type = FA
-					
-					elif text_tree[i].type == EN:
-						next = true
-					
-			
-			
-			if next:
-				next = false
-				text_tr.append(new_part)
-				new = true
-				adi = false
-
-			if adi:
-				if i + 1 < text_tree.size():
-					i += 1
-				else:
-					text_tr.append(new_part)
-					end = true
-			else:
-				adi = true
-			
-			
-			if new:
-				new = false
-				new_part = newPart.new()
-				new_part.init(text_tree[i])
-				
-				if i + 1 < text_tree.size():
-					i += 1
-				
-	
-	
-	return text_tr
-
-func make_text(text_tree: Array) -> String:
+func make_text(text_tree: TextTree) -> String:
 	
 	debug("----making text")
 	
 	var text = ""
-	var string = ""
 	
-	
-	
-	text_tree = collect_en_part(text_tree)
-	
-	for part in text_tree:
+	for part_holder in text_tree.branchs:
 		
-		
-		string = part.get_part(fa_word, fa_s_word)
+		var string = part_holder.get_part(fa_word, fa_s_word)
 		
 		text = string + text
-		
-		string = ""
 	
 	debug(text)
 	
 	return text
 
-"""
-fa un fa
-fa un en
-en un en
-en un fa
-fa en
-en fa
 
-
-"""
 
 
 func convert_to_array(text: String) -> Array:
@@ -490,31 +433,36 @@ func convert_to_array(text: String) -> Array:
 		
 		debug("============")
 		
+		
+		letter = s_char_position(letter)
+		
 		letter = fa_char_position(letter)
 		if letter.type == UN:
 			letter = en_char_position(letter)
 		
-		letter = shift_char_position(letter)
+		
 		
 		letters.append(letter)
 	
 	return letters
 
 
-func lexer(text) -> Array:
+
+
+
+
+func lexer(text) -> TextTree:
 	
 	debug("====lexer=====================")
 	
 	var letters = convert_to_array(text)
 	
-	var text_tree = splite_text_by_type(letters)
-	
-	text_tree = set_persian_char_type(text_tree)
-	
+	var text_tree := TextTree.new()
+	text_tree.init(self, letters)
 	
 	return text_tree
 
-func parser(text_tree: Array) -> String:
+func parser(text_tree: TextTree) -> String:
 	
 	debug("====parser==================")
 	

@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://PersianWordsSet3.gd" type="Script" id=1]
 [ext_resource path="res://IRANSansWeb.ttf" type="DynamicFontData" id=2]
 [ext_resource path="res://PersianWordsSet.gd" type="Script" id=3]
 [ext_resource path="res://VBoxContainer3.gd" type="Script" id=4]
+[ext_resource path="res://new_dynamicfont.tres" type="DynamicFont" id=5]
 
 [sub_resource type="DynamicFont" id=1]
 font_data = ExtResource( 2 )
@@ -55,7 +56,7 @@ margin_right = 1024.0
 margin_bottom = 27.0
 size_flags_vertical = 2
 custom_fonts/font = SubResource( 1 )
-text = ".ااااا .مﺎﻠﺳ ( _*+ﻦﯿﺠﻧا‌تودﻮﮔ+*_ \"ﯽﻨﯿﭼ‌فوﺮﺣ ﺖﺤﺻ\" ﯽﺳرﺮﺑ یاﺮﺑ ﺖﺳا «یا‌ﻪﻧﻮﻤﻧ» ﻦﺘﻣ ﻦﯾا :1 ﻦﺘﻣ)"
+text = ".ااااا .مﺎﻠﺳ ( _*+ﻦﯿﺠﻧا‌تودﻮﮔ+*_ \"ﯽﻨﯿﭼ‌فوﺮﺣ ﺖﺤﺻ\" ﯽﺳرﺮﺑ یاﺮﺑ ﺖﺳا «یا‌ﻪﻧﻮﻤﻧ» ﻦﺘﻣ ﻦﯾا :1 ﻦﺘﻣ)اااا&"
 align = 2
 
 [node name="Label2" type="Label" parent="Control/VBoxContainer3/VBoxContainer2"]
@@ -64,7 +65,7 @@ margin_right = 1024.0
 margin_bottom = 58.0
 size_flags_vertical = 2
 custom_fonts/font = SubResource( 1 )
-text = ")متن 1: این متن »نمونه‌ای« است برای بررسی \"صحت حروف‌چینی\" _*+گودوت‌انجین+*_ ( سلام. hello."
+text = "&rlm;)متن 1: این متن »نمونه‌ای« است برای بررسی \"صحت حروف‌چینی\" _*+گودوت‌انجین+*_ ( سلام. hello."
 align = 2
 
 [node name="VBoxContainer3" type="VBoxContainer" parent="Control/VBoxContainer3"]
@@ -89,6 +90,15 @@ margin_right = 1024.0
 margin_bottom = 58.0
 size_flags_vertical = 2
 custom_fonts/font = SubResource( 1 )
-text = "سلام. hello to you بهترین الله nice جیگر"
+text = ".   سلام. hello to you بهترین الله nice جیگر"
 align = 2
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Control"]
+margin_right = 168.0
+margin_bottom = 142.0
+custom_fonts/bold_font = ExtResource( 5 )
+custom_fonts/normal_font = ExtResource( 5 )
+bbcode_enabled = true
+bbcode_text = "&rlm;سلام به شما"
+text = "&rlm;سلام به شما"
 
