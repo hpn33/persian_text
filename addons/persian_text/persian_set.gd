@@ -1,14 +1,10 @@
 extends Node
 
 
-var debug = false
+var debug = true
 
-enum dir { rtl, ltr }
-enum {FA, EN, UN}
+enum {FA, UN}
 
-var FULL_L = [EN, FA]
-
-var current_lang
 
 
 
@@ -55,24 +51,6 @@ var fa_s_word = ["آ","ا","د","ذ","ر","ز","ژ","و",
 "#","@","!","~","`","\"","\\","|","}","{","0","9",
 "8","7","6","5","4","3","2","1","0","?","/",">",
 "<","ء",":","،","ٍ","ٌ","ً","ّ","ِ","َ","؛",",","=","_","[","]","«","»","ـ"]
- 
-var en_word = [
-	"a", "b", "c", "d",
-	"e", "f", "g", "h",
-	"i", "j", "k", "l",
-	"m", "n", "o", "p",
-	"q", "r", "s", "t",
-	"u", "v", "w", "x",
-	"y", "z"
-]
-
-var en_s_word = ["آ","ا","د","ذ","ر","ز","ژ","و",
-" ","‌",".","+","-",")","(","*","&","^","%","$",
-"#","@","!","~","`","\"","\\","|","}","{","0","9",
-"8","7","6","5","4","3","2","1","0","?","/",">",
-"<","ء",":","،","ٍ","ٌ","ً","ّ","ِ","َ","؛",",","=","_","[","]","«","»","ـ"]
-
-
 
 
 class Letter:
@@ -81,7 +59,7 @@ class Letter:
 	var type := UN
 	var no := 0
 	var position := -1
-	var is_shift = false
+	var is_s = false
 
 
 class Part:
@@ -91,7 +69,7 @@ class Part:
 	func add(value: Letter):
 		tokens.append(value)
 	
-	func get_fa_word(fa_list, fa_s_list) -> String:
+	func get_word(fa_list, fa_s_list) -> String:
 		
 		var word := ""
 		var size := tokens.size()
@@ -102,31 +80,13 @@ class Part:
 		
 			match type:
 				FA:
-					if token.is_shift:
+					if token.is_s:
 						word = fa_s_list[abs(token.position + 2)] + word
 					else:
 						word = fa_list[(token.position * 4) + token.no] + word
-#				EN:
-#					word += token.c
 				UN:
-					word = token.c + word
-		
-		return word
-	
-	func get_en_word() -> String:
-		
-		var word := ""
-		var size := tokens.size()
-	
-		for i in size:
-		
-			var token = tokens[i]
-		
-			match type:
-				EN:
-					word += token.c
-				UN:
-					word = token.c + word
+					word = fa_s_list[abs(token.position + 2)] + word
+#					word = token.c + word
 		
 		return word
 
@@ -146,13 +106,9 @@ class PartHolder:
 	func get_part(fa_word: Array, fa_s_word: Array) -> String:
 		var string := ""
 		
-		match type:
-			FA:
-				for part in parts:
-					string = part.get_fa_word(fa_word, fa_s_word) + string
-			EN:
-				for part in parts:
-					string += part.get_en_word() 
+		for part in parts:
+			string = part.get_word(fa_word, fa_s_word) + string
+
 
 		
 		return string
@@ -279,32 +235,15 @@ class TextTree:
 						if branchs[i].type == FA:
 							new_part.append(branchs[i])
 						
-						elif branchs[i].type == EN:
-							next = true
 						
 						elif branchs[i].type == UN:
 							new_part.append(branchs[i])
-					
-					EN:
-						if branchs[i].type == FA:
-							next = true
-						
-						elif branchs[i].type == EN:
-							new_part.append(branchs[i])
-						
-						elif branchs[i].type == UN:
-							if branchs[i +1].type == EN:
-								new_part.append(branchs[i])
-							else:
-								next = true
 					
 					UN:
 						if branchs[i].type == FA:
 							new_part.append(branchs[i])
 							new_part.type = FA
 						
-						elif branchs[i].type == EN:
-							next = true
 						
 				
 				
@@ -341,22 +280,13 @@ class TextTree:
 # get position in special Chars
 func s_char_position( letter: Letter) -> Letter:
 	
-	match letter.type:
-		FA:
-			for i in range( 8, fa_s_word.size() ):
-				if letter.c == fa_s_word[i]:
-					letter.is_shift = true
-					letter.position = (-i)-2
-					debug("	fa_s:	" + letter.c + "	" + str(letter.position))
-					break
-		EN:
-			for i in range( 8, en_s_word.size() ):
-				if letter.c == en_s_word[i]:
-					letter.is_shift = true
-					letter.position = (-i)-2
-					debug("	en_s:	" + letter.c + "	" + str(letter.position))
-					break
-	
+	for i in range( 8, fa_s_word.size() ):
+		if letter.c == fa_s_word[i]:
+			letter.is_s = true
+			letter.position = (-i)-2
+#			debug("	fa_s:	" + letter.c + "	" + str(letter.position))
+			break
+		
 	if letter.type == UN:
 		debug("	un:	" + letter.c + "	" + str(letter.position))
 	return letter
@@ -371,19 +301,6 @@ func fa_char_position( letter: Letter ) -> Letter:
 			break
 	
 	return letter
-
-# check and get postion from persian char list
-func en_char_position( letter: Letter ) -> Letter:
-	for i in en_word.size():
-		if letter.c == en_word[i]:
-			letter.position = i
-			letter.type = EN
-			debug("	en:	" + letter.c + "	" + str(letter.position))
-			break
-	
-	return letter
-
-
 
 
 
@@ -434,11 +351,9 @@ func convert_to_array(text: String) -> Array:
 		debug("============")
 		
 		
-		letter = s_char_position(letter)
-		
 		letter = fa_char_position(letter)
 		if letter.type == UN:
-			letter = en_char_position(letter)
+			letter = s_char_position(letter)
 		
 		
 		
